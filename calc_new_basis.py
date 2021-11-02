@@ -68,17 +68,21 @@ def calc_x_part(x_dens,dens_shape,dx,nelec):
     Args:
         dens ([type]): 3d density
     """
-    if dens.ndim != 3:
+    
+    nx,ny,nz = dens_shape
+    if len(dens_shape) != 3:
         raise("Wrong density array dimensions")
 
     x_part = np.zeros(dens_shape)
 
-    for iy in range(len(dens[0])):
-        for iz in range(len(dens[0][0])):
+    for iy in range(ny):
+        for iz in range(nz):
             x_part[:,iy,iz] = np.cumsum(x_dens[:]) * dx * (2*np.pi /nelec)
 
     return x_part
 
+def calc_x_part2(x_dens,dens_shape,dx,nelec):
+    pass
 
 def calc_y_part(xy_density,x_dens,dens_shape,dy):
     """ returns a 3d np.array that contains the y_part of f(x,y,z) integral. notice that y_part is a 3d array
@@ -86,12 +90,12 @@ def calc_y_part(xy_density,x_dens,dens_shape,dy):
     Args:
         dens ([type]): [description]
     """
-    if dens.ndim != 3:
+    if len(dens_shape) != 3:
         raise("Wrong density array dimensions")
-
-    y_part = np.zeros( (len(dens),len(dens[0]),len(dens[0][0])) )
-    
     nx,ny,nz = dens_shape
+    
+    y_part = np.zeros(dens_shape)
+    
     for ix in range(nx):
         for iz in range(nz):   
             y_part[ix,:,iz] = np.cumsum(xy_density[ix,:]) * dy  * (2*np.pi/x_dens[ix])
@@ -106,12 +110,13 @@ def calc_z_part(dens,xy_dens,dens_shape,dz):
     Args:
         dens ([type]): [description]
     """
-    if dens.ndim != 3:
-        raise("Wrong density array dimensions")
 
-    z_part = np.zeros( (len(dens),len(dens[0]),len(dens[0][0])) )
-  
+    if len(dens_shape) != 3:
+        raise("Wrong density array dimensions")  
     nx,ny,nz = dens_shape
+    
+    z_part = np.zeros(dens_shape)
+  
     for ix in range(nx):   
         for iy in range(ny):
             z_part[ix,iy,:] = np.cumsum(dens[ix,iy,:]) * dz * (2*np.pi/xy_dens[ix,iy])
