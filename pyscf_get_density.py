@@ -43,7 +43,7 @@ def calc_density(mol, dm, nx=80, ny=80, nz=80):
     h = total_vol/len(rho)
     print("calc_density: total grid charge = {0} while number of electrons is {1}".format(tot_charge,numpy.sum(mol.nelec)))
     rho = rho.reshape(nx,ny,nz)
-    return rho,h,(dx,dy,dz)
+    return rho,h,(dx,dy,dz),box
 
 
 def visualise_density(density, z_slice):
@@ -73,7 +73,7 @@ def visualise_density(density, z_slice):
 
 if __name__ == "__main__":
 
-    mol_hf = gto.M(atom='H 0 0 -0.544 ; H 0 0 0.544',basis = 'sto3g')
+    mol_hf = gto.M(atom='Li 0 0 -0.544 ; H 0 0 0.544',basis = 'sto3g')
     mol_hf.verbose = 6
 
     mf_hf = dft.RKS(mol_hf)
@@ -81,8 +81,8 @@ if __name__ == "__main__":
     mf_hf = mf_hf.newton() # second-order algortihm
     s = mf_hf.kernel()
 
-    dens,h,(dx,dy,dz) = calc_density(mol_hf, mf_hf.make_rdm1()) #makes total density
+    dens,h,(dx,dy,dz),box2 = calc_density(mol_hf, mf_hf.make_rdm1()) #makes total density
 
     print("total charge is ",numpy.sum(dens) * h )
 
-    visualise_density(dens,z_slice=40)
+    visualise_density(dens,z_slice=39)

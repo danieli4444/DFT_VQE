@@ -30,7 +30,7 @@ import numpy as np
 from pyscf import gto,dft
 
 from pyscf_get_density import calc_density
-
+from scipy import interpolate
 
 
 def calc_x_dens(dens,dy,dz):
@@ -81,8 +81,12 @@ def calc_x_part(x_dens,dens_shape,dx,nelec):
 
     return x_part
 
-def calc_x_part2(x_dens,dens_shape,dx,nelec):
-    pass
+def calc_x_part2(x_dens,dens_shape,dx,nelec,box):
+    y = np.cumsum(x_dens[:]) * dx * (2*np.pi /nelec)
+    nx,ny,nz =  dens_shape
+    x = np.linspace(0, box[0], nx)
+    f_x = interpolate.interp1d(x,y)
+    return f_x
 
 def calc_y_part(xy_density,x_dens,dens_shape,dy):
     """ returns a 3d np.array that contains the y_part of f(x,y,z) integral. notice that y_part is a 3d array
@@ -125,19 +129,31 @@ def calc_z_part(dens,xy_dens,dens_shape,dz):
 
 
 def check_basis(f,density,nelec,h):
-    # k1 = 1
-    # phi_1 = np.sqrt(density/nelec) * np.exp(1.j*k1* f)
-    # # k2 = 3
-    # phi_2 = np.sqrt(density/nelec) * np.exp(1.j*k2* f)
-    k_ij = 3
+    k_i = np.array([1,2,3])
+    f_i = np.ndarray(f.shape)
+    for k in range(3):
+        f_i[k,:,:,:] = k_i[k] * f[k,:,:,:]
+     
+    phi_1 = np.sqrt(density/nelec) * np.exp(1.j* f_i)
+
+    k_j = (0,0,1)
+    f_j = np.ndarray(f.shape)
+    for k in range(3):
+        f_j[k,:,:,:] = k_j[k] * f[k,:,:,:]
+    phi_2 = np.sqrt(density/nelec) * np.exp(1.j* f_j)
+
+    
     total_integral = 0
+    k_ji = k_j - k_i
+    temp = k_ji[0] * f[0,:,:,:] + k_ji[1] * f[1,:,:,:] + k_ji[2] * f[2,:,:,:]
     for ix in range(len(density)):
         for iy in range(len(density[0])):
             for iz in range(len(density[0][0])):
-                total_integral += density[ix,iy,iz] * np.exp(1.j * k_ij * f[ix,iy,iz])
+                total_integral += density[ix,iy,iz] * np.exp(1.j * temp[ix,iy,iz])
+                
     total_integral *= h/nelec
     print("check basis:")
-    print("the total integral over <phi_i|phi_j> (kij = {0} ) = {1}".format(k_ij,total_integral))
+    print("the total integral over <phi_i|phi_j> (kji = {0} ) = {1}".format(k_ji,total_integral))
  
 
 
@@ -158,27 +174,30 @@ if __name__ == "__main__":
     nx = ny = nz = axis_gridsize
 
     # # 1. calc the 3d density
-    dens,h,(dx,dy,dz) = calc_density(mol_hf, mf_hf.make_rdm1(),nx,ny,nz) #makes total density
+    dens,h,(dx,dy,dz),box = calc_density(mol_hf, mf_hf.make_rdm1(),nx,ny,nz) #makes total density
     nelec = np.sum(dens) * h
     print("total charge is {0} and h = {1}".format(nelec,h))
     density_shape = dens.shape
-
+    print("box = ",box)
   
     # # 2. calc the x_dens(x') and the xy_dens(x',y')
     x_dens = calc_x_dens(dens,dy,dz)
-    #print(x_dens)
-    import matplotlib.pyplot as plt
-    plt.plot(x_dens)
-    plt.show()
     xy_dens = calc_xy_dens(dens,dz)
-  
+    #print(x_dens)
+    # import matplotlib.pyplot as plt
+    # plt.plot(x_dens)
+    # plt.show()
+    
+    
 
     # 3. calc x,y,z parts cumulative integrals and assemble f(x,y,z)
     x_part = calc_x_part(x_dens,density_shape,dx,nelec) 
     y_part = calc_y_part(xy_dens,x_dens,density_shape,dy)
     z_part = calc_z_part(dens,xy_dens,density_shape,dz)
 
-    f = x_part + y_part + z_part    
+    #f_x = calc_x_part2(x_dens,density_shape,dx,nelec,box) 
+    
+    f = np.array([x_part,y_part,z_part])
 
     check_basis(f,dens,nelec,h)
     
